@@ -137,6 +137,7 @@ func (pm *Manager) Reload(pxyCfgs map[string]config.ProxyConf) {
 			pm.proxies[name] = pxy
 			addPxyNames = append(addPxyNames, name)
 
+			// 给 server 发送 NewProxy 消息告知启动 proxy
 			pxy.Start()
 		}
 	}

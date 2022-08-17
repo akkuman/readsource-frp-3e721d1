@@ -211,6 +211,7 @@ func runServer(cfg config.ServerCommonConf) (err error) {
 		log.Info("frps uses command line arguments for config")
 	}
 
+	// 启动server服务，监听一些端口（websocket，kcp，tcp...）
 	svr, err := server.NewService(cfg)
 	if err != nil {
 		return err

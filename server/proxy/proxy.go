@@ -122,6 +122,7 @@ func (pxy *BaseProxy) GetWorkConnFromPool(src, dst net.Addr) (workConn net.Conn,
 			dstAddr, dstPortStr, _ = net.SplitHostPort(dst.String())
 			dstPort, _ = strconv.Atoi(dstPortStr)
 		}
+		// 给 client 发送 StartWorkConn 消息，告知有新的用户连接接入该 proxy
 		err := msg.WriteMsg(workConn, &msg.StartWorkConn{
 			ProxyName: pxy.GetName(),
 			SrcAddr:   srcAddr,
@@ -268,6 +269,7 @@ func HandleUserTCPConnection(pxy Proxy, userConn net.Conn, serverCfg config.Serv
 	}
 
 	// try all connections from the pool
+	// 从连接池获取一个可用连接，并告知 client 有新的用户连接接入该 proxy
 	workConn, err := pxy.GetWorkConnFromPool(userConn.RemoteAddr(), userConn.LocalAddr())
 	if err != nil {
 		return
@@ -293,6 +295,7 @@ func HandleUserTCPConnection(pxy Proxy, userConn net.Conn, serverCfg config.Serv
 	name := pxy.GetName()
 	proxyType := pxy.GetConf().GetBaseInfo().ProxyType
 	metrics.Server.OpenConnection(name, proxyType)
+	// 将来自用户的请求与 client 连接池中的一个可用连接串联
 	inCount, outCount := frpIo.Join(local, userConn)
 	metrics.Server.CloseConnection(name, proxyType)
 	metrics.Server.AddTrafficIn(name, proxyType, inCount)

@@ -267,6 +267,7 @@ func (svr *Service) login() (conn net.Conn, session *fmux.Session, err error) {
 	if svr.cfg.ConnectServerLocalIP != "" {
 		dialOptions = append(dialOptions, libdial.WithLocalAddr(svr.cfg.ConnectServerLocalIP))
 	}
+	// 根据 client 的配置来建立与 server 的连接
 	dialOptions = append(dialOptions,
 		libdial.WithProtocol(protocol),
 		libdial.WithTimeout(time.Duration(svr.cfg.DialServerTimeout)*time.Second),

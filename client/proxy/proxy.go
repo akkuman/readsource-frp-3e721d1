@@ -803,6 +803,7 @@ func HandleTCPWorkConnection(ctx context.Context, localInfo *config.LocalSvrConf
 		localConn.Write(extraInfo)
 	}
 
+	// 将本地连接与用户连接串联起来
 	frpIo.Join(localConn, remote)
 	xl.Debug("join connections closed")
 }

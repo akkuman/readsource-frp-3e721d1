@@ -155,6 +155,7 @@ func NewControl(
 	serverCfg config.ServerCommonConf,
 ) *Control {
 
+	// 根据 client 登录消息中的连接池数量和最大连接池数量限制来决定实际的连接池数量
 	poolCount := loginMsg.PoolCount
 	if poolCount > int(serverCfg.MaxPoolCount) {
 		poolCount = int(serverCfg.MaxPoolCount)
@@ -195,12 +196,16 @@ func (ctl *Control) Start() {
 	}
 	msg.WriteMsg(ctl.conn, loginRespMsg)
 
+	// 异步读取 ctl.sendCh 中的值，处理后写入 ctl.conn
 	go ctl.writer()
+	// 根据实际的连接池数量来通知 client 建立指定数量的连接
 	for i := 0; i < ctl.poolCount; i++ {
 		ctl.sendCh <- &msg.ReqWorkConn{}
 	}
 
+	// 异步读取来自 client 的消息，根据信息类型进行处理
 	go ctl.manager()
+	// 异步读取 ctl.conn 中的数据，处理后写入 ctl.readCh，供 ctl.manager() 使用
 	go ctl.reader()
 	go ctl.stoper()
 }
@@ -295,6 +300,7 @@ func (ctl *Control) writer() {
 	defer ctl.allShutdown.Start()
 	defer ctl.writerShutdown.Done()
 
+	// 登录后，后续给 client 发送消息均使用aes cfb加密（key 为 token）
 	encWriter, err := crypto.NewWriter(ctl.conn, []byte(ctl.serverCfg.Token))
 	if err != nil {
 		xl.Error("crypto new writer error: %v", err)
@@ -427,17 +433,20 @@ func (ctl *Control) manager() {
 	for {
 		select {
 		case <-heartbeatCh:
+			// 检查心跳（心跳由 client 发起 ping）
 			if time.Since(ctl.lastPing) > time.Duration(ctl.serverCfg.HeartbeatTimeout)*time.Second {
 				xl.Warn("heartbeat timeout")
 				return
 			}
 		case rawMsg, ok := <-ctl.readCh:
+			// 读取来自 client 的消息，根据信息类型进行处理
 			if !ok {
 				return
 			}
 
 			switch m := rawMsg.(type) {
 			case *msg.NewProxy:
+				// 启动一个 proxy，监听对应的端口，将一些信息（NewProxyResp）返回给 client 
 				content := &plugin.NewProxyContent{
 					User: plugin.UserInfo{
 						User:  ctl.loginMsg.User,
@@ -470,6 +479,7 @@ func (ctl *Control) manager() {
 				ctl.CloseProxy(m)
 				xl.Info("close proxy [%s] success", m.ProxyName)
 			case *msg.Ping:
+				// 心跳更新
 				content := &plugin.PingContent{
 					User: plugin.UserInfo{
 						User:  ctl.loginMsg.User,

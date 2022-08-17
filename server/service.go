@@ -332,6 +332,7 @@ func (svr *Service) handleConnection(ctx context.Context, conn net.Conn) {
 	}
 	conn.SetReadDeadline(time.Time{})
 
+	// 对于读取到的消息体分类型进行处理
 	switch m := rawMsg.(type) {
 	case *msg.Login:
 		// server plugin hook

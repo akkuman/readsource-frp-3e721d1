@@ -378,10 +378,13 @@ func (ctl *Control) msgHandler() {
 
 			switch m := rawMsg.(type) {
 			case *msg.ReqWorkConn:
+				// 异步与 server 建立连接，并等待用户连接到该proxy，处理StartWorkConn消息
 				go ctl.HandleReqWorkConn(m)
 			case *msg.NewProxyResp:
+				// server 已经监听端口启动完成 proxy了，此处处理 server 返回的信息 NewProxyResp
 				ctl.HandleNewProxyResp(m)
 			case *msg.Pong:
+				// 更新最后一次心跳
 				if m.Error != "" {
 					xl.Error("Pong contains error: %s", m.Error)
 					ctl.conn.Close()
